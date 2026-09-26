@@ -50,7 +50,7 @@
             <p id="loader-text" class="text-slate-400 text-sm font-medium">Analyserer pensum og bygger læringssløyfe...</p>
         </div>
 
-        <!-- App-kortet (Eksakt match med skjermbildet) -->
+        <!-- App-kortet -->
         <div id="app-card" class="bg-cardbg rounded-xl p-6 sm:p-8 w-full max-w-3xl shadow-2xl border border-slate-800/50 hidden">
             
             <!-- Header og Progress -->
@@ -149,7 +149,14 @@ Du fungerer som backend for en app. Du MÅ returnere KUN et rent, gyldig JSON-ob
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+                
                 const resData = await response.json();
+                
+                // Sjekk for å fange Googles egne feilmeldinger
+                if (!response.ok) {
+                    throw new Error(`Google API Feil: ${resData.error?.message || response.statusText}`);
+                }
+
                 let textRes = resData.candidates[0].content.parts[0].text;
                 textRes = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
                 
@@ -162,7 +169,7 @@ Du fungerer som backend for en app. Du MÅ returnere KUN et rent, gyldig JSON-ob
                 renderStep();
             } catch(e) {
                 console.error(e);
-                alert("Feil ved generering. Sjekk API-nøkkel og prøv igjen.");
+                alert("Teknisk feil: " + e.message);
                 elLoader.classList.add('hidden');
             }
         }
@@ -334,7 +341,14 @@ Returner KUN JSON:
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: evalPrompt }] }] })
                 });
+                
                 const resData = await response.json();
+                
+                // Sjekk for å fange Googles egne feilmeldinger
+                if (!response.ok) {
+                    throw new Error(`Google API Feil: ${resData.error?.message || response.statusText}`);
+                }
+
                 let textRes = resData.candidates[0].content.parts[0].text;
                 textRes = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
                 
@@ -345,7 +359,7 @@ Returner KUN JSON:
                 renderStep();
             } catch(e) {
                 console.error(e);
-                alert("Feil under evaluering. Prøv igjen.");
+                alert("Teknisk feil under evaluering: " + e.message);
                 elLoader.classList.add('hidden');
                 elAppCard.classList.remove('hidden');
             }
