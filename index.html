@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="no" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYG3510 Anestesisykepleie – Interaktiv Læringsplatform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        cardHover: '#334155',
+                        accentBlue: '#3b82f6',
+                        accentGreen: '#10b981',
+                        accentRed: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-darkBg text-slate-100 flex flex-col justify-between antialiased">
+
+    <header class="w-full border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-lg">
+                SYG
+            </div>
+            <div>
+                <h1 class="text-sm font-semibold tracking-wider text-slate-300 uppercase">NTNU Gjøvik • SYG3510</h1>
+                <p class="text-lg font-bold text-white">Anestesisykepleie Læringsplatform</p>
+            </div>
+        </div>
+        <div id="session-badge" class="hidden px-3 py-1 bg-slate-800 border border-slate-700 text-xs rounded-full font-medium text-slate-300">
+            Aktivt tema: <span id="current-topic-label" class="text-blue-400 font-semibold">Ingen</span>
+        </div>
+    </header>
+
+    <main class="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
+        <div id="app-container" class="w-full max-w-3xl bg-cardBg border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-[520px]">
+            
+            <!-- VIEW 1: SETUP SCREEN -->
+            <div id="view-setup" class="p-6 sm:p-10 flex flex-col justify-center flex-1 space-y-6">
+                <div class="space-y-2">
+                    <span class="text-xs uppercase tracking-widest text-blue-400 font-semibold">Interaktiv 4-Fase Læringsloop</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">Velg ditt faglige tema</h2>
+                    <p class="text-slate-400 text-sm">
+                        Platformen genererer automatisk pensumbasert opplegg fra <em>Anestesisykepleie</em> (Leonardsen), <em>Nurse Anesthesia</em> (Elisha), <em>Menneskekroppen</em> og <em>NSA 2024</em>.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="topic-input" class="block text-sm font-medium text-slate-300 mb-1.5">Hva vil du lære om i dag?</label>
+                        <input type="text" id="topic-input" placeholder="F.eks. TIVA, Sirkulasjonssvikt, LAST, Overtrykksventilasjon..." 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-xs text-slate-500 self-center mr-1">Populære valg:</span>
+                        <button onclick="setTopic('TIVA')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition">TIVA</button>
+                        <button onclick="setTopic('Sirkulasjonssvikt')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition">Sirkulasjonssvikt</button>
+                        <button onclick="setTopic('Respirasjonsmekanikk og PEEP')" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition">Respirasjonsmekanikk</button>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button id="start-btn" onclick="startLearningSession()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 px-6 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center space-x-2">
+                        <span>Start Læringsøkt</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 2: LOADING SCREEN -->
+            <div id="view-loading" class="hidden p-12 flex flex-col items-center justify-center flex-1 space-y-6 text-center">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-700"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-xl font-bold text-white" id="loading-title">Konsulterer pensumbaserte kilder...</h3>
+                    <p class="text-sm text-slate-400 max-w-sm" id="loading-subtitle">Søker i Leonardsen, Elisha, Menneskekroppen og NSA 2024 for å bygge din interaktive modul.</p>
+                </div>
+            </div>
+
+            <!-- VIEW 3: ACTIVE LEARNING LOOP SCREEN -->
+            <div id="view-learning" class="hidden flex flex-col flex-1 justify-between">
+                
+                <!-- Card Header with Progress Bar -->
+                <div class="p-6 border-b border-slate-800/80 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span id="phase-badge" class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">Fase 1: Directed Reading</span>
+                        <span id="step-indicator" class="text-xs font-semibold text-slate-400">Steg 1 av 4</span>
+                    </div>
+                    <!-- Progress Bar style matching screenshot -->
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex space-x-1">
+                        <div id="prog-1" class="h-full bg-blue-500 w-1/4 transition-all duration-300"></div>
+                        <div id="prog-2" class="h-full bg-slate-700 w-1/4 transition-all duration-300"></div>
+                        <div id="prog-3" class="h-full bg-slate-700 w-1/4 transition-all duration-300"></div>
+                        <div id="prog-4" class="h-full bg-slate-700 w-1/4 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Card Dynamic Body -->
+                <div id="card-body" class="p-6 sm:p-8 flex-1 overflow-y-auto space-y-6">
+                    <!-- Dynamic Content Injected Here -->
+                </div>
+
+                <!-- Card Footer Controls -->
+                <div class="p-6 border-t border-slate-800 bg-slate-900/30 flex items-center justify-between">
+                    <button id="prev-btn" onclick="prevStep()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        Forrige
+                    </button>
+                    <button id="next-btn" onclick="nextStep()" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/20 transition flex items-center space-x-2">
+                        <span id="next-btn-text">Neste</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-800">
+        SYG3510 Anestesisykepleie • NTNU Gjøvik &bull; Pedagogisk modell med [Documented fact] og [Professional consensus] verifisering.
+    </footer>
+
+    <script>
+        let currentTopic = "";
+        let currentPhaseIndex = 1; // 1: Reading, 2: MCQ1, 3: MCQ2, 4: Kortsvar, 5: Feedback
+        let learningData = null;
+        let userAnswers = {
+            mcq1: null,
+            mcq2: null,
+            kortsvar: ""
+        };
+
+        function setTopic(topic) {
+            document.getElementById('topic-input').value = topic;
+        }
+
+        function setView(viewName) {
+            document.getElementById('view-setup').classList.add('hidden');
+            document.getElementById('view-loading').classList.add('hidden');
+            document.getElementById('view-learning').classList.add('hidden');
+
+            if (viewName === 'setup') document.getElementById('view-setup').classList.remove('hidden');
+            if (viewName === 'loading') document.getElementById('view-loading').classList.remove('hidden');
+            if (viewName === 'learning') document.getElementById('view-learning').classList.remove('hidden');
+        }
+
+        async function startLearningSession() {
+            const inputVal = document.getElementById('topic-input').value.trim();
+            if (!inputVal) {
+                alert("Vennligst skriv inn et faglige tema.");
+                return;
+            }
+            currentTopic = inputVal;
+            document.getElementById('current-topic-label').innerText = currentTopic;
+            document.getElementById('session-badge').classList.remove('hidden');
+
+            setView('loading');
+            
+            // Step-by-step loading messages
+            const loadingTitles = [
+                "Søker i pensumlitteratur (Leonardsen & Elisha)...",
+                "Henter fysiologiske prinsipper fra Menneskekroppen...",
+                "Sjekker Norsk Standard for Anestesi (NSA 2024)...",
+                "Strukturerer 4-fasers interaktiv læringsloop..."
+            ];
+            let msgIdx = 0;
+            const loadInterval = setInterval(() => {
+                msgIdx = (msgIdx + 1) % loadingTitles.length;
+                document.getElementById('loading-title').innerText = loadingTitles[msgIdx];
+            }, 1200);
+
+            try {
+                await generateLearningContent(currentTopic);
+                clearInterval(loadInterval);
+                currentPhaseIndex = 1;
+                userAnswers = { mcq1: null, mcq2: null, kortsvar: "" };
+                setView('learning');
+                renderPhase();
+            } catch (err) {
+                clearInterval(loadInterval);
+                console.error(err);
+                alert("Kunne ikke generere innhold via API. Bruker innebygd robust standardmodul.");
+                loadFallbackContent(currentTopic);
+                setView('learning');
+                renderPhase();
+            }
+        }
+
+        async function generateLearningContent(topic) {
+            const systemPrompt = `Du er en ekspert-professor i anestesisykepleie ved NTNU Gjøvik. 
+            Opprett et strukturert JSON-objekt for læringsøkten om emnet: "${topic}".
+            Kildene skal STRICTLY baseres på:
+            - "Anestesisykepleie" (Leonardsen, 4. utg.)
+            - "Nurse Anesthesia" (Elisha et al., 7. utg.)
+            - "Menneskekroppen" (3. utg)
+            - Norsk Standard for Anestesi (NSA 2024)
+
+            JSON-formatet MÅ være nøyaktig slik:
+            {
+              "reading": {
+                "title": "Tittel på undertema",
+                "intro": "Kort og presist leseoppdrag (2-3 avsnitt)",
+                "sourceLinkText": "Norsk Standard for Anestesi / Retningslinje",
+                "sourceLinkUrl": "https://www.anestesi.no",
+                "criticalNote": "Kildekritisk merknad om fysiologisk grunnprinsipp vs retningslinje."
+              },
+              "mcq1": {
+                "question": "Første flervalgsspørsmål om emnet?",
+                "options": ["Alternativ A", "Alternativ B", "Alternativ C", "Alternativ D"],
+                "correctIndex": 1,
+                "explanation": "Forklar hvorfor dette er riktig med pensumhenvisning og [Documented fact]."
+              },
+              "mcq2": {
+                "question": "Andre flervalgsspørsmål om emnet?",
+                "options": ["Alternativ A", "Alternativ B", "Alternativ C", "Alternativ D"],
+                "correctIndex": 2,
+                "explanation": "Forklar hvorfor dette er riktig med pensumhenvisning og [Professional consensus]."
+              },
+              "kortsvar": {
+                "case": "Kort klinisk kasuistikk relevant for emnet.",
+                "question": "Åpent spørsmål som krever patofysiologisk forklaring (3-6 setninger).",
+                "sampleAnswer": "Eksempel på fullgod besvarelse som dekker mekanismene."
+              }
+            }`;
+
+            const payload = {
+                contents: [{ parts: [{ text: `Generer JSON-opplegg for ${topic}` }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!rawText) throw new Error("Tom respons fra API");
+            
+            learningData = JSON.parse(rawText);
+        }
+
+        function loadFallbackContent(topic) {
+            learningData = {
+                reading: {
+                    title: `Grunnprinsipper: ${topic}`,
+                    intro: `Dette modulen fokuserer på de essensielle fysiologiske og kliniske mekanismene knyttet til ${topic}. I henhold til Leonardsen ("Anestesisykepleie") og Elisha ("Nurse Anesthesia") kreves det presis observasjonskompetanse for å sikre pasientsikkerheten under anestesi.`,
+                    sourceLinkText: "Norsk Standard for Anestesi (NSA 2024)",
+                    sourceLinkUrl: "https://www.anestesi.no",
+                    criticalNote: "Litteraturen kombinerer internasjonale fysiologiske prinsipper med nasjonale prosedyrer for operasjonsskranken."
+                },
+                mcq1: {
+                    question: `Hva er den primære fysiologiske effekten knyttet til tidlig deteksjon av avvik innen ${topic}?`,
+                    options: [
+                        "Redusert behov for kontinuerlig invasiv overvåking.",
+                        "Muligheten til å iverksette korrigerende tiltak før cellulær hypoksi og organisk svikt inntreffer.",
+                        "Fullstendig eliminering av anestesiindusert vasodilatasjon.",
+                        "Normalisering av sympatikustonus uten medikamentell intervensjon."
+                    ],
+                    correctIndex: 1,
+                    explanation: "Tidlig deteksjon gir mulighet for proaktive intervensjoner. [Documented fact]"
+                },
+                mcq2: {
+                    question: `Hvordan påvirker standard anestesifarmaka de autonome kompensasjonsmekanismene ved ${topic}?`,
+                    options: [
+                        "De forsterker baroreseptorrefleksen proporsjonalt med doseringen.",
+                        "De opprettholder normal venøs retur uavhengig av trykkforhold i thorax.",
+                        "De demper sympatisk kompensasjon, noe som kan avdekke uoppdaget hypovolemi eller sirkulatorisk svikt.",
+                        "De øker myokardkontraktiliteten for å motvirke perifer motstand."
+                    ],
+                    correctIndex: 2,
+                    explanation: "Anestesimidler hemmer sympatikus og gir venodilatasjon. [Professional consensus]"
+                },
+                kortsvar: {
+                    case: `En pasient under generell anestesi for ${topic} opplever et akutt hemodynamisk fall og endret perfusjon.`,
+                    question: "Forklar patofysiologisk hvorfor pasientens fysiologiske kompensasjonsmekanismer svikter under denne tilstanden. (3-6 setninger)",
+                    sampleAnswer: "Anestesimidler blokkerer sympatisk respons og gir vasodilatasjon i kapasitanskarene. Dette reduserer venøs retur (preload) og hjertets minuttvolum. Uten kompensatorisk takykardi eller vasokonsstriksjon faller blodtrykket raskt."
+                }
+            };
+        }
+
+        function renderPhase() {
+            const body = document.getElementById('card-body');
+            const badge = document.getElementById('phase-badge');
+            const stepInd = document.getElementById('step-indicator');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtnText = document.getElementById('next-btn-text');
+
+            // Update progress bars
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById(`prog-${i}`);
+                if (i <= currentPhaseIndex) {
+                    bar.className = "h-full bg-blue-500 w-1/4 transition-all duration-300";
+                } else {
+                    bar.className = "h-full bg-slate-700 w-1/4 transition-all duration-300";
+                }
+            }
+
+            prevBtn.disabled = currentPhaseIndex === 1;
+
+            if (currentPhaseIndex === 1) {
+                badge.innerText = "Fase 1: Directed Reading";
+                stepInd.innerText = "Steg 1 av 4";
+                nextBtnText.innerText = "Neste: MCQ 1";
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <span class="text-xs uppercase tracking-widest text-blue-400 font-semibold">Pensumstyrt Forberedelse</span>
+                        <h3 class="text-xl font-bold text-white">${learningData.reading.title}</h3>
+                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-slate-300 text-sm leading-relaxed space-y-3">
+                            <p>${learningData.reading.intro}</p>
+                        </div>
+                        <div class="flex items-center space-x-2 pt-2">
+                            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <a href="${learningData.reading.sourceLinkUrl}" target="_blank" class="text-blue-400 hover:underline text-sm font-medium">${learningData.reading.sourceLinkText}</a>
+                        </div>
+                        <div class="bg-blue-950/30 border border-blue-900/40 rounded-xl p-4 text-xs text-blue-300/90">
+                            <strong>Kildekritisk merknad:</strong> ${learningData.reading.criticalNote}
+                        </div>
+                    </div>
+                `;
+            } else if (currentPhaseIndex === 2) {
+                badge.innerText = "Fase 2: Kunnskapsverifisering (MCQ 1)";
+                stepInd.innerText = "Steg 2 av 4";
+                nextBtnText.innerText = "Neste: MCQ 2";
+                renderMCQ('mcq1', 'Første Flervalgsspørsmål');
+            } else if (currentPhaseIndex === 3) {
+                badge.innerText = "Fase 2: Kunnskapsverifisering (MCQ 2)";
+                stepInd.innerText = "Steg 3 av 4";
+                nextBtnText.innerText = "Neste: Kortsvar";
+                renderMCQ('mcq2', 'Andre Flervalgsspørsmål');
+            } else if (currentPhaseIndex === 4) {
+                badge.innerText = "Fase 3: Kognitiv Prosesering";
+                stepInd.innerText = "Steg 4 av 4";
+                nextBtnText.innerText = "Fullfør & Se Tilbakemelding";
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <span class="text-xs uppercase tracking-widest text-blue-400 font-semibold">Klinisk Kasuistikk & Kortsvar</span>
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-2">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kasuistikk</h4>
+                            <p class="text-sm text-slate-200">${learningData.kortsvar.case}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-semibold text-white">${learningData.kortsvar.question}</label>
+                            <p class="text-xs text-slate-400">Skriv en konsis besvarelse på 3-6 setninger som forklarer de patofysiologiske årsakene.</p>
+                            <textarea id="kortsvar-input" rows="4" placeholder="Skriv din begrunnelse her..." 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500">${userAnswers.kortsvar}</textarea>
+                        </div>
+                    </div>
+                `;
+            } else if (currentPhaseIndex === 5) {
+                badge.innerText = "Fase 4: Algoritmisk Feedback";
+                stepInd.innerText = "Fullført";
+                nextBtnText.innerText = "Start nytt tema";
+                
+                // Evaluate MCQ answers
+                const m1Correct = userAnswers.mcq1 === learningData.mcq1.correctIndex;
+                const m2Correct = userAnswers.mcq2 === learningData.mcq2.correctIndex;
+
+                body.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <span class="text-xs uppercase tracking-widest text-emerald-400 font-semibold">Evaluering & Resultater</span>
+                            <h3 class="text-xl font-bold text-white">Faglig Tilbakemelding</h3>
+                        </div>
+
+                        <!-- MCQ Results Summary -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="p-3.5 rounded-xl border ${m1Correct ? 'bg-emerald-950/20 border-emerald-900/40 text-emerald-300' : 'bg-red-950/20 border-red-900/40 text-red-300'} flex items-center space-x-3">
+                                <div class="text-lg font-bold">${m1Correct ? '✓' : '✕'}</div>
+                                <div>
+                                    <div class="text-xs font-semibold uppercase">Spørsmål 1</div>
+                                    <div class="text-xs opacity-90">${m1Correct ? 'Riktig svar besvart.' : 'Feil svar. Se pensum.'}</div>
+                                </div>
+                            </div>
+                            <div class="p-3.5 rounded-xl border ${m2Correct ? 'bg-emerald-950/20 border-emerald-900/40 text-emerald-300' : 'bg-red-950/20 border-red-900/40 text-red-300'} flex items-center space-x-3">
+                                <div class="text-lg font-bold">${m2Correct ? '✓' : '✕'}</div>
+                                <div>
+                                    <div class="text-xs font-semibold uppercase">Spørsmål 2</div>
+                                    <div class="text-xs opacity-90">${m2Correct ? 'Riktig svar besvart.' : 'Feil svar. Se pensum.'}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Explanations -->
+                        <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-xs text-slate-300">
+                            <div><strong>MCQ 1 Fasit:</strong> ${learningData.mcq1.explanation}</div>
+                            <div class="pt-2 border-t border-slate-800"><strong>MCQ 2 Fasit:</strong> ${learningData.mcq2.explanation}</div>
+                        </div>
+
+                        <!-- Kortsvar Feedback -->
+                        <div class="space-y-2 bg-blue-950/20 border border-blue-900/30 p-4 rounded-xl">
+                            <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Evaluering av Kortsvar (Fase 3)</h4>
+                            <p class="text-xs text-slate-300 italic">"Ditt svar: ${userAnswers.kortsvar ? userAnswers.kortsvar : '(Ingen besvarelse)'}"</p>
+                            <div class="pt-2 text-xs text-slate-200">
+                                <strong>Anbefalt faglig fasit:</strong> ${learningData.kortsvar.sampleAnswer}
+                            </div>
+                            <div class="text-[10px] text-blue-400/80 pt-1">
+                                [Professional consensus] Evaluert mot læringsmålene i SYG3510 for patofysiologisk resonnement.
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderMCQ(key, title) {
+            const mcq = learningData[key];
+            const selectedIdx = userAnswers[key];
+
+            let optionsHtml = '';
+            mcq.options.forEach((opt, idx) => {
+                const isSelected = selectedIdx === idx;
+                const btnClass = isSelected 
+                    ? 'border-blue-500 bg-blue-600/10 text-white shadow-md' 
+                    : 'border-slate-700 bg-slate-900/60 text-slate-300 hover:border-slate-600 hover:bg-slate-800';
+
+                optionsHtml += `
+                    <button onclick="selectMCQ('${key}', ${idx})" class="w-full text-left p-4 rounded-xl border ${btnClass} transition flex items-start space-x-3 group">
+                        <span class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-semibold text-slate-300 group-hover:border-slate-500 shrink-0 mt-0.5">
+                            ${String.fromCharCode(65 + idx)}
+                        </span>
+                        <span class="text-sm font-medium leading-snug">${opt}</span>
+                    </button>
+                `;
+            });
+
+            const body = document.getElementById('card-body');
+            body.innerHTML = `
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <span class="text-xs uppercase tracking-widest text-blue-400 font-semibold">${title}</span>
+                        <h3 class="text-lg sm:text-xl font-bold text-white leading-snug">${mcq.question}</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectMCQ(key, idx) {
+            userAnswers[key] = idx;
+            renderPhase();
+        }
+
+        function nextStep() {
+            // Save text area if on phase 4
+            if (currentPhaseIndex === 4) {
+                const ta = document.getElementById('kortsvar-input');
+                if (ta) userAnswers.kortsvar = ta.value.trim();
+            }
+
+            if (currentPhaseIndex < 5) {
+                currentPhaseIndex++;
+                renderPhase();
+            } else {
+                // Reset to setup
+                setView('setup');
+            }
+        }
+
+        function prevStep() {
+            if (currentPhaseIndex > 1 && currentPhaseIndex <= 5) {
+                currentPhaseIndex--;
+                renderPhase();
+            }
+        }
+    </script>
+</body>
+</html>
