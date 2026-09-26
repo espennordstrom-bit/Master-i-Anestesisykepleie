@@ -14,295 +14,384 @@
                         cardbg: '#1E293B',
                         innerbox: '#0F172A',
                         brandblue: '#3B82F6',
+                        success: '#10B981',
                         textmuted: '#94A3B8'
                     }
                 }
             }
         }
     </script>
+    <style>
+        .circular-chart { display: block; margin: 0 auto; max-width: 80%; max-height: 250px; }
+        .circle-bg { fill: none; stroke: #1E293B; stroke-width: 3.8; }
+        .circle { fill: none; stroke-width: 2.8; stroke-linecap: round; transition: stroke-dasharray 1s ease-out; }
+        .percentage { fill: #F8FAFC; font-family: sans-serif; font-size: 0.5em; text-anchor: middle; font-weight: bold; }
+        .label { fill: #94A3B8; font-family: sans-serif; font-size: 0.2em; text-anchor: middle; }
+    </style>
 </head>
 <body class="bg-appbg text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
-    <!-- Toppmeny -->
     <header class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-b border-slate-800 bg-appbg shadow-sm gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full border border-slate-700 bg-cardbg flex items-center justify-center text-brandblue font-bold text-sm shadow-inner">
-                SYG
-            </div>
+        <div class="flex items-center gap-4 cursor-pointer" onclick="renderDashboard()">
+            <div class="w-10 h-10 rounded-full border border-slate-700 bg-cardbg flex items-center justify-center text-brandblue font-bold text-sm shadow-inner">SYG</div>
             <div>
                 <div class="text-[10px] font-bold tracking-widest text-textmuted uppercase">NTNU Gjøvik • SYG3510</div>
-                <div class="text-sm font-semibold text-slate-200">Anestesisykepleie Læringsplattform</div>
+                <div class="text-sm font-semibold text-slate-200">Anestesisykepleie Dashbord</div>
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <input type="password" id="api-key" placeholder="Gemini API-nøkkel" class="bg-cardbg border border-slate-700 text-xs px-3 py-2 rounded focus:outline-none focus:border-brandblue text-slate-300 w-48">
-            <input type="text" id="topic" placeholder="Skriv tema (f.eks. TIVA)" class="bg-cardbg border border-slate-700 text-xs px-3 py-2 rounded focus:outline-none focus:border-brandblue text-slate-300 w-48">
-            <button onclick="startApp()" class="bg-brandblue hover:bg-blue-600 text-white text-xs px-4 py-2 rounded font-medium transition-colors">Start Økt</button>
+            <input type="password" id="api-key" placeholder="Gemini API-nøkkel (AQ...)" class="bg-cardbg border border-slate-700 text-xs px-3 py-2 rounded focus:outline-none focus:border-brandblue text-slate-300 w-56" onchange="saveApiKey()">
+            <button onclick="renderDashboard()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-4 py-2 rounded font-medium transition-colors">Hjem</button>
         </div>
     </header>
 
-    <!-- Hovedinnhold -->
-    <main class="flex-grow flex items-center justify-center p-4 sm:p-8">
+    <main class="flex-grow flex flex-col items-center p-4 sm:p-8 w-full max-w-5xl mx-auto">
         
-        <!-- Velkomst / Laster-skjerm -->
-        <div id="loader-view" class="text-center space-y-4 hidden">
-            <div class="w-12 h-12 border-4 border-slate-800 border-t-brandblue rounded-full animate-spin mx-auto"></div>
-            <p id="loader-text" class="text-slate-400 text-sm font-medium">Analyserer pensum og bygger læringssløyfe...</p>
+        <div id="view-dashboard" class="w-full space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-cardbg border border-slate-800/50 rounded-xl p-6 shadow-xl col-span-1 md:col-span-2">
+                    <h2 class="text-lg font-semibold text-white mb-4">Start ny læringssløyfe</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="topic-input" placeholder="Definer fagspesifikt tema (f.eks. Sirkulasjonssvikt, TIVA)" class="bg-innerbox border border-slate-700 text-sm px-4 py-3 rounded-lg focus:outline-none focus:border-brandblue text-slate-200 flex-grow">
+                        <button onclick="initiateSession()" class="bg-brandblue hover:bg-blue-600 text-white text-sm px-6 py-3 rounded-lg font-medium transition-colors whitespace-nowrap">Generer</button>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg border border-slate-800/50 rounded-xl p-6 shadow-xl flex flex-col items-center justify-center">
+                    <h2 class="text-sm font-bold text-textmuted uppercase tracking-wider mb-2">Fremdrift</h2>
+                    <svg viewBox="0 0 36 36" class="circular-chart text-brandblue w-32 h-32">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path id="progress-circle" class="circle stroke-current" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <text id="progress-text" x="18" y="19" class="percentage">0%</text>
+                        <text x="18" y="24" class="label">Mestring</text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="bg-cardbg border border-slate-800/50 rounded-xl p-6 shadow-xl">
+                <h2 class="text-lg font-semibold text-white mb-4">Historikk og Repetisjon</h2>
+                <div id="history-container" class="space-y-3"></div>
+            </div>
         </div>
 
-        <!-- App-kortet -->
-        <div id="app-card" class="bg-cardbg rounded-xl p-6 sm:p-8 w-full max-w-3xl shadow-2xl border border-slate-800/50 hidden">
-            
-            <!-- Header og Progress -->
+        <div id="view-loader" class="text-center py-20 space-y-4 hidden w-full">
+            <div class="w-12 h-12 border-4 border-slate-800 border-t-brandblue rounded-full animate-spin mx-auto"></div>
+            <p id="loader-text" class="text-slate-400 text-sm font-medium">Prosesserer datagrunnlag...</p>
+        </div>
+
+        <div id="view-session" class="bg-cardbg rounded-xl p-6 sm:p-8 w-full max-w-3xl shadow-2xl border border-slate-800/50 hidden">
             <div class="flex justify-between items-center mb-4">
-                <span id="phase-badge" class="bg-slate-700/50 text-blue-400 text-[10px] sm:text-xs px-3 py-1.5 rounded uppercase font-bold tracking-wider">FASE 1: DIRECTED READING</span>
+                <span id="phase-badge" class="bg-slate-700/50 text-brandblue text-[10px] sm:text-xs px-3 py-1.5 rounded uppercase font-bold tracking-wider">FASE 1: DIRECTED READING</span>
                 <span id="step-indicator" class="text-textmuted text-xs sm:text-sm font-medium">Steg 1 av 4</span>
             </div>
             
             <div class="flex gap-2 mb-8">
-                <div id="prog-1" class="h-1 flex-1 bg-brandblue rounded transition-colors duration-300"></div>
+                <div id="prog-1" class="h-1 flex-1 bg-slate-700 rounded transition-colors duration-300"></div>
                 <div id="prog-2" class="h-1 flex-1 bg-slate-700 rounded transition-colors duration-300"></div>
                 <div id="prog-3" class="h-1 flex-1 bg-slate-700 rounded transition-colors duration-300"></div>
                 <div id="prog-4" class="h-1 flex-1 bg-slate-700 rounded transition-colors duration-300"></div>
             </div>
             
-            <!-- Dynamisk container for innhold -->
-            <div id="content-container" class="min-h-[300px]">
-                <!-- Innhold genereres her av JS -->
-            </div>
+            <div id="content-container" class="min-h-[300px]"></div>
 
-            <!-- Footer / Navigasjon -->
             <div class="flex justify-between items-center mt-8">
-                <button id="btn-prev" onclick="prevStep()" class="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors cursor-pointer hidden">Forrige</button>
+                <button id="btn-prev" onclick="prevStep()" class="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors hidden">Forrige</button>
                 <div class="flex-grow"></div>
                 <button id="btn-next" onclick="nextStep()" class="bg-brandblue hover:bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                    <span id="btn-next-text">Neste: MCQ</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    <span id="btn-next-text">Neste</span>
+                </button>
+                <button id="btn-close" onclick="closeSession()" class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors hidden">
+                    Avslutt gjennomgang
                 </button>
             </div>
         </div>
+
     </main>
 
     <script>
-        // State
-        const state = {
+        let state = {
+            history: [],
+            activeSession: null,
             step: 1,
-            data: null,
-            answers: { mcq1: null, mcq2: null, kortsvar: "" },
-            feedback: null
+            isReviewMode: false
         };
 
-        // DOM Elements
-        const elAppCard = document.getElementById('app-card');
-        const elLoader = document.getElementById('loader-view');
-        const elLoaderText = document.getElementById('loader-text');
-        const elContent = document.getElementById('content-container');
-        const elBadge = document.getElementById('phase-badge');
-        const elStep = document.getElementById('step-indicator');
-        const elBtnPrev = document.getElementById('btn-prev');
-        const elBtnNext = document.getElementById('btn-next');
-        const elBtnNextText = document.getElementById('btn-next-text');
-
-        // Restore API Key
         window.onload = () => {
             const savedKey = localStorage.getItem('syg_api_key');
-            if(savedKey) document.getElementById('api-key').value = savedKey;
+            if (savedKey) document.getElementById('api-key').value = savedKey;
+            
+            try {
+                const savedHistory = localStorage.getItem('syg_history');
+                if (savedHistory) state.history = JSON.parse(savedHistory);
+            } catch(e) {
+                console.error("Kunne ikke laste historikk:", e);
+                state.history = [];
+            }
+            
+            renderDashboard();
         };
 
-        async function startApp() {
+        function saveApiKey() {
+            const key = document.getElementById('api-key').value.trim();
+            if(key) localStorage.setItem('syg_api_key', key);
+        }
+
+        function switchView(viewId) {
+            ['view-dashboard', 'view-loader', 'view-session'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function renderDashboard() {
+            state.activeSession = null;
+            state.isReviewMode = false;
+            document.getElementById('topic-input').value = "";
+            switchView('view-dashboard');
+
+            const totalModules = state.history.length;
+            const targetModules = 20; 
+            const progress = Math.min(100, Math.round((totalModules / targetModules) * 100));
+            
+            document.getElementById('progress-circle').setAttribute('stroke-dasharray', `${progress}, 100`);
+            document.getElementById('progress-text').textContent = `${progress}%`;
+
+            const container = document.getElementById('history-container');
+            if (totalModules === 0) {
+                container.innerHTML = `<p class="text-textmuted text-sm italic">Ingen data registrert. Datagrunnlag mangler.</p>`;
+                return;
+            }
+
+            container.innerHTML = state.history.map((session, index) => `
+                <div class="flex justify-between items-center bg-innerbox border border-slate-800 p-4 rounded-lg hover:border-slate-600 transition-colors">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">${session.data.undertema_tittel}</div>
+                        <div class="text-xs text-textmuted mt-1">Gjennomført: ${session.date}</div>
+                    </div>
+                    <button onclick="reviewSession(${index})" class="text-brandblue hover:text-blue-400 text-sm font-medium">Gjennomgå</button>
+                </div>
+            `).reverse().join('');
+        }
+
+        async function callGeminiAPI(promptText) {
             const apiKey = document.getElementById('api-key').value.trim();
-            const topic = document.getElementById('topic').value.trim();
+            if (!apiKey) throw new Error("API-nøkkel mangler.");
 
-            if (!apiKey || !topic) return alert("Fyll inn både API-nøkkel og Tema.");
-            localStorage.setItem('syg_api_key', apiKey);
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            });
 
-            elAppCard.classList.add('hidden');
-            elLoader.classList.remove('hidden');
-            elLoaderText.innerText = "Søker i pensum og genererer læringssløyfe...";
+            const resData = await response.json();
+            if (!response.ok) {
+                throw new Error(resData.error?.message || `HTTP-feil: ${response.status}`);
+            }
 
-            const prompt = `Jeg ønsker å gjennomføre en interaktiv læringsøkt for faget Anestesisykepleie 1 (SYG3510) ved NTNU Gjøvik. 
+            if (!resData.candidates || resData.candidates.length === 0) {
+                throw new Error("Modellen returnerte ingen gyldige kandidater.");
+            }
+
+            let textRes = resData.candidates[0].content.parts[0].text;
+            return textRes.replace(/```json/g, '').replace(/```/g, '').trim();
+        }
+
+        async function initiateSession() {
+            const topic = document.getElementById('topic-input').value.trim();
+            const apiKey = document.getElementById('api-key').value.trim();
+
+            if (!apiKey) return alert("API-nøkkel mangler. Prosedyre avbrutt.");
+            if (!topic) return alert("Datagrunnlag utilstrekkelig: Tema mangler.");
+
+            switchView('view-loader');
+            document.getElementById('loader-text').innerText = "Innhenter primærlitteratur og genererer fysiologisk læringssløyfe...";
+
+            const prompt = `Fungér som ekspertmentor og akademisk evaluator i Anestesisykepleie 1 (SYG3510). 
 Hovedtema: "${topic}"
 
-KILDEBRUK OG HIERARKI:
-1. Primærkilder: "Anestesisykepleie" (Leonardsen), "Nurse Anesthesia" (Elisha), "Menneskekroppen", og Norsk Standard for Anestesi (NSA).
+KILDEGRUNNLAG:
+"Anestesisykepleie" (Leonardsen), "Nurse Anesthesia" (Elisha), "Menneskekroppen", og Norsk Standard for Anestesi (NSA).
+[Avbruddsplikt]: Dersom temaet faller utenfor pensum, avbryt forespørselen.
 
-Du fungerer som backend for en app. Du MÅ returnere KUN et rent, gyldig JSON-objekt med nøyaktig denne strukturen (ingen markdown utenfor JSON):
+Returner KUN et validert JSON-objekt iht. følgende struktur (ingen markdown utenfor JSON):
 {
-  "undertema_tittel": "Spesifikt og elementært undertema",
-  "fase1_leseoppdrag": "Kort og presist leseoppdrag hentet fra kildene.",
-  "fase1_lenketekst": "Beskrivende navn på relevant nettressurs (f.eks NSA)",
-  "fase1_lenkeurl": "https://www.anestesi.no eller lignende",
-  "fase1_kildekritikk": "Kort kildekritisk merknad om kildens type.",
-  "fase2_sporsmal1": "Første flervalgsspørsmål om fysiologi.",
+  "undertema_tittel": "Elementært undertema",
+  "fase1_leseoppdrag": "Målrettet leseoppdrag.",
+  "fase1_lenketekst": "Referansenavn (eks. NSA 2024)",
+  "fase1_lenkeurl": "Relevant URL",
+  "fase1_kildekritikk": "Kildekritisk vurdering av autoritet/bias.",
+  "fase2_sporsmal1": "Fysiologisk flervalgsspørsmål.",
   "fase2_alt1": ["A", "B", "C", "D"],
   "fase2_fasit1": 0,
-  "fase2_sporsmal2": "Andre flervalgsspørsmål.",
+  "fase2_sporsmal2": "Farmakologisk/patofysiologisk flervalgsspørsmål.",
   "fase2_alt2": ["A", "B", "C", "D"],
   "fase2_fasit2": 2,
-  "fase3_kasuistikk": "Kort klinisk kasuistikk.",
-  "fase3_sporsmal": "Åpent spørsmål (krever fysiologisk forklaring)."
+  "fase3_kasuistikk": "Klinisk kasuistikk.",
+  "fase3_sporsmal": "Spørsmål som krever patofysiologisk forklaring."
 }`;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
+                const textRes = await callGeminiAPI(prompt);
                 
-                const resData = await response.json();
+                state.activeSession = {
+                    date: new Date().toLocaleDateString('no-NO', { day: '2-digit', month: 'short', year: 'numeric' }),
+                    data: JSON.parse(textRes),
+                    answers: { mcq1: null, mcq2: null, kortsvar: "" },
+                    feedback: null
+                };
                 
-                if (!response.ok) {
-                    throw new Error(`Google API Feil: ${resData.error?.message || response.statusText}`);
-                }
-
-                let textRes = resData.candidates[0].content.parts[0].text;
-                textRes = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
-                
-                state.data = JSON.parse(textRes);
                 state.step = 1;
-                state.answers = { mcq1: null, mcq2: null, kortsvar: "" };
-                
-                elLoader.classList.add('hidden');
-                elAppCard.classList.remove('hidden');
+                state.isReviewMode = false;
+                switchView('view-session');
                 renderStep();
             } catch(e) {
-                console.error(e);
-                alert("Teknisk feil: " + e.message);
-                elLoader.classList.add('hidden');
+                alert(`Systemfeil: ${e.message}`);
+                switchView('view-dashboard');
             }
         }
 
+        function reviewSession(index) {
+            state.activeSession = state.history[index];
+            state.step = 1;
+            state.isReviewMode = true;
+            switchView('view-session');
+            renderStep();
+        }
+
         function renderStep() {
+            const data = state.activeSession.data;
+            const answers = state.activeSession.answers;
+            const feedback = state.activeSession.feedback;
+            const elContent = document.getElementById('content-container');
+            const elBadge = document.getElementById('phase-badge');
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const btnClose = document.getElementById('btn-close');
+
             for(let i=1; i<=4; i++) {
                 document.getElementById(`prog-${i}`).className = i <= state.step 
                     ? 'h-1 flex-1 bg-brandblue rounded transition-colors duration-300' 
                     : 'h-1 flex-1 bg-slate-700 rounded transition-colors duration-300';
             }
             
-            elStep.innerText = `Steg ${state.step} av 4`;
+            document.getElementById('step-indicator').innerText = `Steg ${state.step} av 4`;
 
             if (state.step === 1) {
                 elBadge.innerText = "FASE 1: DIRECTED READING";
-                elBtnPrev.classList.add('hidden');
-                elBtnNextText.innerText = "Neste: MCQ";
+                btnPrev.classList.add('hidden');
+                btnNext.classList.remove('hidden');
+                btnClose.classList.add('hidden');
+                document.getElementById('btn-next-text').innerText = "Neste: Verifisering";
                 
                 elContent.innerHTML = `
-                    <h3 class="text-brandblue text-xs font-bold uppercase tracking-wider mb-2">Pensumstyrt forberedelse</h3>
-                    <h1 class="text-white text-xl sm:text-2xl font-semibold mb-6">${state.data.undertema_tittel}</h1>
-                    
-                    <div class="bg-innerbox rounded-lg p-5 mb-4 text-slate-300 leading-relaxed text-sm shadow-inner">
-                        ${state.data.fase1_leseoppdrag}
-                    </div>
-                    
-                    <a href="${state.data.fase1_lenkeurl}" target="_blank" class="inline-flex items-center gap-2 text-brandblue text-sm mb-6 hover:underline">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                        ${state.data.fase1_lenketekst}
-                    </a>
-                    
-                    <div class="bg-innerbox/50 border border-slate-700/50 rounded-lg p-4 text-textmuted text-xs leading-relaxed">
-                        <span class="font-bold text-slate-300">Kildekritisk merknad:</span> ${state.data.fase1_kildekritikk}
+                    <h1 class="text-xl font-semibold mb-6 text-white">${data.undertema_tittel}</h1>
+                    <div class="bg-innerbox rounded-lg p-5 mb-4 text-slate-300 text-sm shadow-inner">${data.fase1_leseoppdrag}</div>
+                    <a href="${data.fase1_lenkeurl}" target="_blank" class="text-brandblue text-sm mb-6 hover:underline inline-block">${data.fase1_lenketekst}</a>
+                    <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-textmuted text-xs">
+                        <span class="font-bold text-slate-300">Kildekritisk metodikk:</span> ${data.fase1_kildekritikk}
                     </div>
                 `;
             } 
             else if (state.step === 2) {
                 elBadge.innerText = "FASE 2: KUNNSKAPSVERIFISERING";
-                elBtnPrev.classList.remove('hidden');
-                elBtnNextText.innerText = "Neste: Kasuistikk";
+                btnPrev.classList.remove('hidden');
+                btnNext.classList.remove('hidden');
+                btnClose.classList.add('hidden');
+                document.getElementById('btn-next-text').innerText = "Neste: Kognitiv prosessering";
                 
-                elContent.innerHTML = `
-                    <h3 class="text-brandblue text-xs font-bold uppercase tracking-wider mb-6">Test din forståelse</h3>
-                    
-                    <div class="space-y-6">
-                        <div>
-                            <p class="text-slate-200 font-medium mb-3 text-sm sm:text-base">1. ${state.data.fase2_sporsmal1}</p>
-                            <div class="grid grid-cols-1 gap-2">
-                                ${state.data.fase2_alt1.map((alt, i) => `
-                                    <div onclick="selectMCQ(1, ${i})" class="flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-colors ${state.answers.mcq1 === i ? 'bg-slate-800 border-brandblue' : 'bg-innerbox border-slate-800 hover:border-slate-600'}">
-                                        <div class="w-6 h-6 rounded bg-slate-800 text-xs flex items-center justify-center font-bold text-textmuted">${['A','B','C','D'][i]}</div>
-                                        <div class="text-sm text-slate-300">${alt}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
+                const renderMCQ = (num, q, alts, userAns, fasit) => {
+                    let html = `<div class="mb-6"><p class="text-slate-200 font-medium mb-3 text-sm">${num}. ${q}</p><div class="space-y-2">`;
+                    alts.forEach((alt, i) => {
+                        let styling = "bg-innerbox border-slate-800";
+                        if (userAns === i) styling = "bg-slate-800 border-brandblue";
+                        if (state.isReviewMode) {
+                            if (i === fasit) styling = "bg-success/20 border-success";
+                            else if (i === userAns) styling = "bg-red-900/20 border-red-500";
+                        }
+                        
+                        const clickAction = state.isReviewMode ? "" : `onclick="selectMCQ(${num}, ${i})"`;
+                        const cursor = state.isReviewMode ? "cursor-default" : "cursor-pointer hover:border-slate-600";
+                        
+                        html += `
+                            <div ${clickAction} class="flex items-center gap-4 p-3 rounded-lg border ${cursor} transition-colors ${styling}">
+                                <div class="w-6 h-6 rounded bg-slate-800 text-xs flex items-center justify-center font-bold text-textmuted">${['A','B','C','D'][i]}</div>
+                                <div class="text-sm text-slate-300">${alt}</div>
+                            </div>`;
+                    });
+                    return html + `</div></div>`;
+                };
 
-                        <div class="pt-4 border-t border-slate-800/50">
-                            <p class="text-slate-200 font-medium mb-3 text-sm sm:text-base">2. ${state.data.fase2_sporsmal2}</p>
-                            <div class="grid grid-cols-1 gap-2">
-                                ${state.data.fase2_alt2.map((alt, i) => `
-                                    <div onclick="selectMCQ(2, ${i})" class="flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-colors ${state.answers.mcq2 === i ? 'bg-slate-800 border-brandblue' : 'bg-innerbox border-slate-800 hover:border-slate-600'}">
-                                        <div class="w-6 h-6 rounded bg-slate-800 text-xs flex items-center justify-center font-bold text-textmuted">${['A','B','C','D'][i]}</div>
-                                        <div class="text-sm text-slate-300">${alt}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
+                elContent.innerHTML = renderMCQ(1, data.fase2_sporsmal1, data.fase2_alt1, answers.mcq1, data.fase2_fasit1) +
+                                      renderMCQ(2, data.fase2_sporsmal2, data.fase2_alt2, answers.mcq2, data.fase2_fasit2);
             }
             else if (state.step === 3) {
                 elBadge.innerText = "FASE 3: KOGNITIV PROSESSERING";
-                elBtnPrev.classList.remove('hidden');
-                elBtnNextText.innerText = "Evaluer (Fase 4)";
+                btnPrev.classList.remove('hidden');
+                btnNext.classList.remove('hidden');
+                btnClose.classList.add('hidden');
+                document.getElementById('btn-next-text').innerText = state.isReviewMode ? "Se sensur" : "Evaluer besvarelse";
+                
+                const readonly = state.isReviewMode ? "readonly" : "";
                 
                 elContent.innerHTML = `
-                    <h3 class="text-brandblue text-xs font-bold uppercase tracking-wider mb-2">Klinisk Kasuistikk</h3>
-                    <div class="bg-innerbox rounded-lg p-5 mb-6 text-slate-300 text-sm shadow-inner leading-relaxed">
-                        ${state.data.fase3_kasuistikk}
-                    </div>
-                    <p class="text-slate-200 font-medium mb-3 text-sm sm:text-base">${state.data.fase3_sporsmal}</p>
-                    <textarea onchange="state.answers.kortsvar = this.value" placeholder="Forklar fysiologisk (3-6 setninger)..." class="w-full bg-innerbox border border-slate-700 text-slate-200 p-4 rounded-lg focus:outline-none focus:border-brandblue text-sm min-h-[120px] resize-y">${state.answers.kortsvar}</textarea>
+                    <div class="bg-innerbox rounded-lg p-5 mb-6 text-slate-300 text-sm shadow-inner">${data.fase3_kasuistikk}</div>
+                    <p class="text-slate-200 font-medium mb-3 text-sm">${data.fase3_sporsmal}</p>
+                    <textarea onchange="state.activeSession.answers.kortsvar = this.value" ${readonly} class="w-full bg-innerbox border border-slate-700 text-slate-200 p-4 rounded-lg focus:outline-none focus:border-brandblue text-sm min-h-[120px] resize-y">${answers.kortsvar}</textarea>
                 `;
             }
             else if (state.step === 4) {
                 elBadge.innerText = "FASE 4: ALGORITMISK FEEDBACK";
-                elBtnPrev.classList.add('hidden');
-                elBtnNextText.innerText = "Ferdig / Ny Økt";
-                
-                const m1 = state.answers.mcq1 === state.data.fase2_fasit1;
-                const m2 = state.answers.mcq2 === state.data.fase2_fasit2;
+                btnPrev.classList.add('hidden');
+                btnNext.classList.add('hidden');
+                btnClose.classList.remove('hidden');
+
+                const m1 = answers.mcq1 === data.fase2_fasit1;
+                const m2 = answers.mcq2 === data.fase2_fasit2;
 
                 elContent.innerHTML = `
-                    <h3 class="text-brandblue text-xs font-bold uppercase tracking-wider mb-6">Sensur og Pensumforankring</h3>
                     <div class="space-y-4">
-                        <div class="bg-innerbox border ${m1 ? 'border-green-900/50' : 'border-red-900/50'} rounded-lg p-4 text-sm">
-                            <span class="font-bold ${m1 ? 'text-green-500' : 'text-red-500'}">${m1 ? '✓ Riktig' : '✗ Feil'} (Spm 1):</span> 
-                            <span class="text-slate-300">${state.feedback.mcq1_feedback}</span>
+                        <div class="bg-innerbox border ${m1 ? 'border-success/50' : 'border-red-900/50'} rounded-lg p-4 text-sm">
+                            <span class="font-bold ${m1 ? 'text-success' : 'text-red-500'}">MCQ 1:</span> <span class="text-slate-300">${feedback.mcq1_feedback}</span>
                         </div>
-                        <div class="bg-innerbox border ${m2 ? 'border-green-900/50' : 'border-red-900/50'} rounded-lg p-4 text-sm">
-                            <span class="font-bold ${m2 ? 'text-green-500' : 'text-red-500'}">${m2 ? '✓ Riktig' : '✗ Feil'} (Spm 2):</span> 
-                            <span class="text-slate-300">${state.feedback.mcq2_feedback}</span>
+                        <div class="bg-innerbox border ${m2 ? 'border-success/50' : 'border-red-900/50'} rounded-lg p-4 text-sm">
+                            <span class="font-bold ${m2 ? 'text-success' : 'text-red-500'}">MCQ 2:</span> <span class="text-slate-300">${feedback.mcq2_feedback}</span>
                         </div>
                         <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-5 mt-6 text-sm">
-                            <h4 class="font-bold text-white mb-2">Tilbakemelding på kortsvar:</h4>
-                            <p class="text-slate-400 italic mb-4 pb-4 border-b border-slate-700">" ${state.answers.kortsvar} "</p>
-                            <div class="text-slate-200 leading-relaxed">${state.feedback.kortsvar_feedback}</div>
+                            <p class="text-slate-400 italic mb-4 pb-4 border-b border-slate-700">" ${answers.kortsvar} "</p>
+                            <div class="text-slate-200 leading-relaxed space-y-2">${feedback.kortsvar_feedback}</div>
                         </div>
                     </div>
                 `;
             }
         }
 
-        function selectMCQ(questionNum, altIndex) {
-            if(questionNum === 1) state.answers.mcq1 = altIndex;
-            if(questionNum === 2) state.answers.mcq2 = altIndex;
+        function selectMCQ(qNum, idx) {
+            if (state.isReviewMode) return;
+            if (qNum === 1) state.activeSession.answers.mcq1 = idx;
+            if (qNum === 2) state.activeSession.answers.mcq2 = idx;
             renderStep();
         }
 
         async function nextStep() {
-            if (state.step === 2) {
-                if(state.answers.mcq1 === null || state.answers.mcq2 === null) return alert("Svar på begge flervalgsspørsmålene.");
-                state.step++; renderStep();
+            if (state.step === 2 && !state.isReviewMode) {
+                if(state.activeSession.answers.mcq1 === null || state.activeSession.answers.mcq2 === null) {
+                    return alert("Kunnskapsverifisering ufullstendig: Besvar alle spørsmål.");
+                }
             } 
-            else if (state.step === 3) {
-                if(!state.answers.kortsvar.trim()) return alert("Du må skrive et svar på kasuistikken.");
-                await fetchEvaluation();
+            else if (state.step === 3 && !state.isReviewMode) {
+                if(!state.activeSession.answers.kortsvar.trim()) {
+                    return alert("Kognitiv prosessering ufullstendig: Mangler patofysiologisk forklaring.");
+                }
+                await executeEvaluation();
+                return;
             } 
-            else if (state.step === 4) {
-                location.reload();
-            } 
-            else {
-                state.step++; renderStep();
+            
+            if (state.step < 4) {
+                state.step++;
+                renderStep();
             }
         }
 
@@ -310,53 +399,45 @@ Du fungerer som backend for en app. Du MÅ returnere KUN et rent, gyldig JSON-ob
             if (state.step > 1) { state.step--; renderStep(); }
         }
 
-        async function fetchEvaluation() {
-            const apiKey = localStorage.getItem('syg_api_key');
-            elAppCard.classList.add('hidden');
-            elLoader.classList.remove('hidden');
-            elLoaderText.innerText = "Evaluerer med vitenskapelige markører...";
+        function closeSession() {
+            renderDashboard();
+        }
 
-            const evalPrompt = `Evaluer studentens svar. 
-Tema: ${state.data.undertema_tittel}
-Student MCQ 1: Valgte alt. index ${state.answers.mcq1} (Fasit index: ${state.data.fase2_fasit1})
-Student MCQ 2: Valgte alt. index ${state.answers.mcq2} (Fasit index: ${state.data.fase2_fasit2})
-Student Kortsvar: "${state.answers.kortsvar}"
+        async function executeEvaluation() {
+            switchView('view-loader');
+            document.getElementById('loader-text').innerText = "Kalkulerer og formaterer algoritmisk sensur...";
 
-Krav til sensur (FASE 4):
-1. Gi konkret pensumhenvisning ved feil i MCQ.
-2. Analyser kortsvaret patofysiologisk. Bruk vitenskapelige markører som [Documented fact] eller [Professional consensus].
+            const { data, answers } = state.activeSession;
+            const evalPrompt = `Evaluer studentens faglige besvarelse. 
+Opprinnelig tema: ${data.undertema_tittel}
+Besvarelse MCQ 1: Valgt index ${answers.mcq1} (Fasit index: ${data.fase2_fasit1})
+Besvarelse MCQ 2: Valgt index ${answers.mcq2} (Fasit index: ${data.fase2_fasit2})
+Besvarelse Kortsvar: "${answers.kortsvar}"
 
-Returner KUN JSON:
+RETNINGSLINJER FOR SENSUR (FASE 4):
+1. Evaluer besvarelsen patofysiologisk. Korriger eventuelle faktafeil med direkte pensumhenvisning. 
+2. [Ufravikelig merking]: Alle faglige påstander i kortsvar-evalueringen SKAL merkes med vitenskapelige markører: [Documented fact], [Professional consensus], [Theory / Hypothesis], eller [Disputed / Unresolved].
+
+Returner KUN et validert JSON-objekt:
 {
-  "mcq1_feedback": "Kort forklaring.",
-  "mcq2_feedback": "Kort forklaring.",
-  "kortsvar_feedback": "Din faglige tilbakemelding her (bruk gjerne HTML <br> for avsnitt)."
+  "mcq1_feedback": "Kort begrunnelse.",
+  "mcq2_feedback": "Kort begrunnelse.",
+  "kortsvar_feedback": "Strukturert faglig evaluering iht. retningslinjer (bruk HTML <br> for avsnitt)."
 }`;
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: evalPrompt }] }] })
-                });
-                
-                const resData = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(`Google API Feil: ${resData.error?.message || response.statusText}`);
-                }
 
-                let textRes = resData.candidates[0].content.parts[0].text;
-                textRes = textRes.replace(/```json/g, '').replace(/```/g, '').trim();
+            try {
+                const textRes = await callGeminiAPI(evalPrompt);
                 
-                state.feedback = JSON.parse(textRes);
+                state.activeSession.feedback = JSON.parse(textRes);
+                state.history.push(state.activeSession);
+                localStorage.setItem('syg_history', JSON.stringify(state.history));
+                
                 state.step = 4;
-                elLoader.classList.add('hidden');
-                elAppCard.classList.remove('hidden');
+                switchView('view-session');
                 renderStep();
             } catch(e) {
-                console.error(e);
-                alert("Teknisk feil under evaluering: " + e.message);
-                elLoader.classList.add('hidden');
-                elAppCard.classList.remove('hidden');
+                alert(`Evalueringsfeil: ${e.message}`);
+                switchView('view-session');
             }
         }
     </script>
